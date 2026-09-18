@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SHADMAN CODEX - Hosting Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+  :root {
+    --bg: #030508; --primary: #00ffff; --card: rgba(22,27,34,0.85); --text: #e6edf3; --glass: rgba(255,255,255,0.05);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 12px; padding-bottom: 100px; min-height: 100vh; }
+  .user-bar { background: rgba(0,0,0,0.8); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-radius: 14px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.08); }
+  .user-bar b { color: var(--primary); }
+  .logout-btn { color: #ff4757; text-decoration: none; font-size: 18px; }
+  .upload-card { background: var(--card); border: 2px dashed rgba(0,255,255,0.3); border-radius: 18px; padding: 20px; text-align: center; margin-bottom: 18px; }
+  .upload-card i { font-size: 26px; color: var(--primary); }
+  .upload-card p { margin: 8px 0; font-size: 13px; opacity: 0.75; }
+  #fileInput { display: none; }
+  .btn { padding: 10px 16px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: #fff; }
+  .btn-primary { background: linear-gradient(45deg, #00ffff, #7000ff); color: #000; }
+  .btn-danger { background: #ff4757; }
+  .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); }
+  .btn-small { padding: 7px 10px; font-size: 12px; }
+  #progressWrap { display:none; margin-top: 12px; background: rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden; height: 8px; }
+  #progressBar { height: 100%; width: 0%; background: linear-gradient(90deg,#00ffff,#7000ff); transition: width .2s; }
+  #deployStatus { font-size: 12px; margin-top: 8px; opacity: 0.85; min-height: 16px; }
+
+  .app-card { background: var(--card); border-radius: 18px; padding: 15px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.06); }
+  .app-top { display: flex; justify-content: space-between; align-items: center; }
+  .app-name { font-weight: bold; font-size: 15px; color: var(--primary); }
+  .status-pill { font-size: 10px; padding: 4px 9px; border-radius: 20px; border: 1px solid; }
+  .status-run { color: #2ecc71; border-color: #2ecc71; background: rgba(46,204,113,0.1); }
+  .status-off { color: #ff4757; border-color: #ff4757; background: rgba(255,71,87,0.1); }
+  .meta-row { font-size: 11px; opacity: 0.65; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 12px; background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 10px; }
+  .toggle-switch { position: relative; width: 40px; height: 22px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background: #444; border-radius: 22px; transition: .3s; }
+  .slider:before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s; }
+  input:checked + .slider { background: #2ecc71; }
+  input:checked + .slider:before { transform: translateX(18px); }
+  .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+  .action-grid a, .action-grid button { width: 100%; margin: 0; justify-content: center; }
+  .action-grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 6px; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 999; align-items: center; justify-content: center; padding: 15px; }
+  .modal-box { background: #10141a; border-radius: 16px; padding: 18px; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; border: 1px solid rgba(0,255,255,0.15); }
+  .modal-box h3 { color: var(--primary); margin-top: 0; font-size: 15px; }
+  .close-btn { float: right; cursor: pointer; color: #ff4757; font-size: 18px; }
+  #logBox { background: #000; color: #0f0; font-family: monospace; font-size: 11px; padding: 10px; border-radius: 8px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+  .file-list { max-height: 200px; overflow-y: auto; margin: 10px 0; }
+  .file-item { display: flex; justify-content: space-between; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 4px; font-size: 12px; cursor: pointer; }
+  #fileEditor { width: 100%; min-height: 250px; background: #000; color: #0f0; font-family: monospace; font-size: 12px; border-radius: 8px; padding: 10px; border: 1px solid #333; }
+  .validate-box { font-size: 12px; margin-top: 10px; padding: 10px; border-radius: 8px; }
+  .validate-ok { background: rgba(46,204,113,0.1); border: 1px solid #2ecc71; color: #2ecc71; }
+  .validate-bad { background: rgba(255,71,87,0.1); border: 1px solid #ff4757; color: #ff9a9a; }
+  .empty-state { text-align: center; opacity: 0.5; padding: 30px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="user-bar">
+  <span><i class="fa-solid fa-circle-user"></i> <b>{{ username }}</b></span>
+  <a href="/logout" class="logout-btn"><i class="fa-solid fa-power-off"></i></a>
+</div>
+
+<div class="upload-card" id="dropZone">
+  <i class="fa-solid fa-cloud-arrow-up"></i>
+  <p>Zip file upload karo (koi size ho, chalega)</p>
+  <input type="file" id="fileInput" accept=".zip">
+  <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-upload"></i> Choose ZIP</button>
+  <div id="progressWrap"><div id="progressBar"></div></div>
+  <div id="deployStatus"></div>
+</div>
+
+<div id="appsList">
+  {% for a in apps %}
+  <div class="app-card" id="card_{{ a.name }}">
+    <div class="app-top">
+      <span class="app-name">{{ a.name }}</span>
+      {% if a.running %}<span class="status-pill status-run">RUNNING</span>{% else %}<span class="status-pill status-off">OFFLINE</span>{% endif %}
+    </div>
+    <div class="meta-row">
+      <span><i class="fa-solid fa-mobile-screen"></i> {{ a.device or "—" }}</span>
+      {% if a.running %}<span><i class="fa-solid fa-clock"></i> {{ a.remaining_run_min }}m tak chalegi</span>{% endif %}
+      {% if not a.running and a.remaining_wake_min %}<span><i class="fa-solid fa-hourglass-half"></i> Auto-on me {{ a.remaining_wake_min }}m baaki</span>{% endif %}
+    </div>
+
+    <div class="toggle-row">
+      <span>Auto-On (sleep ke baad wapas chalu)</span>
+      <label class="toggle-switch"><input type="checkbox" {% if a.auto_on %}checked{% endif %} onchange="toggleSetting('{{ a.name }}','auto_on',this)"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span>Auto-Restart (crash hone par)</span>
+      <label class="toggle-switch"><input type="checkbox" {% if a.auto_restart %}checked{% endif %} onchange="toggleSetting('{{ a.name }}','auto_restart',this)"><span class="slider"></span></label>
+    </div>
+
+    <div class="action-grid">
+      {% if a.running %}
+      <a href="/stop/{{ a.name }}" class="btn btn-danger btn-small"><i class="fa-solid fa-stop"></i> Stop</a>
+      <a href="#" onclick="restartApp('{{ a.name }}');return false;" class="btn btn-outline btn-small"><i class="fa-solid fa-rotate"></i> Restart</a>
+      {% else %}
+      <a href="#" onclick="runApp('{{ a.name }}');return false;" class="btn btn-primary btn-small"><i class="fa-solid fa-play"></i> Run</a>
+      <a href="#" onclick="validateApp('{{ a.name }}');return false;" class="btn btn-outline btn-small"><i class="fa-solid fa-check"></i> Validate</a>
+      {% endif %}
+      <a href="#" onclick="openLogs('{{ a.name }}');return false;" class="btn btn-outline btn-small"><i class="fa-solid fa-terminal"></i> Logs</a>
+    </div>
+    <div class="action-grid2">
+      <a href="#" onclick="openFiles('{{ a.name }}');return false;" class="btn btn-outline btn-small"><i class="fa-solid fa-folder-open"></i> Files</a>
+      <a href="/download/{{ a.name }}" class="btn btn-outline btn-small"><i class="fa-solid fa-download"></i> Download</a>
+    </div>
+    <div class="action-grid2">
+      <button class="btn btn-outline btn-small" onclick="getPublicLink('{{ a.name }}')"><i class="fa-solid fa-link"></i> Public Link</button>
+      <a href="#" onclick="confirmDelete('{{ a.name }}');return false;" class="btn btn-danger btn-small"><i class="fa-solid fa-trash"></i> Delete</a>
+    </div>
+  </div>
+  {% endfor %}
+  {% if not apps %}
+  <div class="empty-state"><i class="fa-solid fa-box-open" style="font-size:30px;"></i><p>Koi app abhi tak upload nahi hui. Upar se ek zip upload karo.</p></div>
+  {% endif %}
+</div>
+
+<!-- LOG MODAL -->
+<div class="modal-overlay" id="logModal">
+  <div class="modal-box">
+    <span class="close-btn" onclick="closeModal('logModal')">&times;</span>
+    <h3 id="logTitle">Logs</h3>
+    <div id="logBox">Loading...</div>
+  </div>
+</div>
+
+<!-- VALIDATE MODAL -->
+<div class="modal-overlay" id="validateModal">
+  <div class="modal-box">
+    <span class="close-btn" onclick="closeModal('validateModal')">&times;</span>
+    <h3>Validation Result</h3>
+    <div id="validateBox">Checking...</div>
+  </div>
+</div>
+
+<!-- FILE MANAGER MODAL -->
+<div class="modal-overlay" id="fileModal">
+  <div class="modal-box">
+    <span class="close-btn" onclick="closeModal('fileModal')">&times;</span>
+    <h3 id="fileModalTitle">Files</h3>
+    <div id="fileListView" class="file-list"></div>
+    <div id="fileEditView" style="display:none;">
+      <p id="editingFileName" style="font-size:12px; color:#00ffff;"></p>
+      <textarea id="fileEditor"></textarea>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn btn-primary btn-small" onclick="saveFile()"><i class="fa-solid fa-save"></i> Save</button>
+        <button class="btn btn-danger btn-small" onclick="deleteFileFromEditor()"><i class="fa-solid fa-trash"></i> Delete</button>
+        <button class="btn btn-outline btn-small" onclick="backToFileList()"><i class="fa-solid fa-arrow-left"></i> Back</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentProject = null;
+let currentFile = null;
+
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+// ---------------- UPLOAD ----------------
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  doUpload(file, false);
+});
+
+function doUpload(file, overwrite) {
+  const progressWrap = document.getElementById('progressWrap');
+  const progressBar = document.getElementById('progressBar');
+  const statusDiv = document.getElementById('deployStatus');
+  progressWrap.style.display = 'block';
+  progressBar.style.width = '0%';
+  statusDiv.textContent = 'Uploading...';
+
+  const formData = new FormData();
+  formData.append('file', file, file.name);
+  if (overwrite) formData.append('overwrite', 'true');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/upload', true);
+  xhr.upload.onprogress = function(e) {
+    if (e.lengthComputable) {
+      const pct = Math.round((e.loaded / e.total) * 100);
+      progressBar.style.width = pct + '%';
+      statusDiv.textContent = 'Uploading... ' + pct + '%';
+    }
+  };
+  xhr.onload = function() {
+    progressWrap.style.display = 'none';
+    let res;
+    try { res = JSON.parse(xhr.responseText); } catch(e) { res = {ok:false, error:'Server response samajh nahi aayi.'}; }
+
+    if (res.needs_confirm) {
+      Swal.fire({
+        title: 'App pehle se maujood hai',
+        text: res.error,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Overwrite karo',
+        cancelButtonText: 'Cancel'
+      }).then((result) => {
+        if (result.isConfirmed) doUpload(file, true);
+      });
+      return;
+    }
+
+    if (!res.ok) {
+      statusDiv.textContent = '';
+      Swal.fire('Error', res.error || 'Upload fail ho gaya.', 'error');
+      return;
+    }
+
+    if (res.warning) {
+      statusDiv.textContent = '';
+      Swal.fire('Upload ho gaya', res.warning, 'warning').then(() => location.reload());
+      return;
+    }
+
+    statusDiv.textContent = 'Deploy ho gaya! Reloading...';
+    setTimeout(() => location.reload(), 700);
+  };
+  xhr.onerror = function() {
+    progressWrap.style.display = 'none';
+    statusDiv.textContent = '';
+    Swal.fire('Error', 'Network error, dobara try karo.', 'error');
+  };
+  xhr.send(formData);
+}
+
+// drag & drop
+const dz = document.getElementById('dropZone');
+['dragover','dragenter'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); }));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  if (e.dataTransfer.files.length) doUpload(e.dataTransfer.files[0], false);
+});
+
+// ---------------- RUN / RESTART with pre-check ----------------
+function runApp(name) {
+  Swal.fire({ title: 'Starting...', text: name, didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+  fetch('/run/' + encodeURIComponent(name) + '?json=1').then(r => r.json()).then(res => {
+    if (res.ok) {
+      Swal.fire('Started!', res.device ? ('Device assigned: ' + res.device) : '', 'success').then(() => location.reload());
+    } else {
+      Swal.fire('Nahi chal payi', res.error || 'Unknown error', 'error');
+    }
+  }).catch(() => Swal.fire('Error', 'Network issue', 'error'));
+}
+
+function restartApp(name) {
+  Swal.fire({ title: 'Restarting...', didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+  fetch('/restart/' + encodeURIComponent(name) + '?json=1').then(r => r.json()).then(res => {
+    if (res.ok) { Swal.fire('Restarted!', '', 'success').then(() => location.reload()); }
+    else { Swal.fire('Fail ho gaya', res.error || '', 'error'); }
+  });
+}
+
+function getPublicLink(name) {
+  fetch('/get_public_link/' + encodeURIComponent(name), { method: 'POST' })
+    .then(r => r.json()).then(res => {
+      if (res.ok) {
+        Swal.fire({
+          title: 'Public Link (bina login)',
+          html: '<input readonly style="width:100%;padding:8px;font-size:12px;" value="' + res.url + '" onclick="this.select()"><p style="font-size:11px;opacity:0.7;margin-top:8px;">Ye link jisko bhi doge, wo start/stop/logs dekh sakega. File edit nahi kar payega.</p>',
+          confirmButtonText: 'Close'
+        });
+      } else {
+        Swal.fire('Error', res.error || 'Link nahi ban paya', 'error');
+      }
+    });
+}
+
+function confirmDelete(name) {
+  Swal.fire({
+    title: 'Pakka delete karna hai?',
+    text: name + ' permanently delete ho jayegi.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Haan, delete karo',
+    confirmButtonColor: '#ff4757'
+  }).then((result) => {
+    if (result.isConfirmed) window.location.href = '/delete/' + encodeURIComponent(name);
+  });
+}
+
+// ---------------- TOGGLES ----------------
+function toggleSetting(name, field, checkbox) {
+  fetch('/toggle_' + field + '/' + encodeURIComponent(name), { method: 'POST' })
+    .then(r => r.json()).then(res => {
+      if (!res.ok) { checkbox.checked = !checkbox.checked; Swal.fire('Error', 'Setting save nahi hui', 'error'); }
+    }).catch(() => { checkbox.checked = !checkbox.checked; });
+}
+
+// ---------------- VALIDATE ----------------
+function validateApp(name) {
+  document.getElementById('validateModal').style.display = 'flex';
+  const box = document.getElementById('validateBox');
+  box.innerHTML = 'Checking code...';
+  fetch('/validate/' + encodeURIComponent(name)).then(r => r.json()).then(res => {
+    if (res.ok) {
+      box.innerHTML = '<div class="validate-box validate-ok"><i class="fa-solid fa-circle-check"></i> Sab kuch sahi hai! Entry file: ' + (res.entry || '') + '</div>';
+    } else if (res.problems) {
+      let html = '<div class="validate-box validate-bad">';
+      res.problems.forEach(p => {
+        html += '<b>' + p.file + '</b>' + (p.line ? (' (Line ' + p.line + ')') : '') + '<br>' + escapeHtml(p.error || '') + '<hr style="opacity:0.2;">';
+      });
+      html += '</div>';
+      box.innerHTML = html;
+    } else {
+      box.innerHTML = '<div class="validate-box validate-bad">' + escapeHtml(res.error || 'Unknown issue') + '</div>';
+    }
+  }).catch(() => { box.innerHTML = '<div class="validate-box validate-bad">Check karte waqt error aaya.</div>'; });
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ---------------- LOGS ----------------
+let logInterval = null;
+function openLogs(name) {
+  document.getElementById('logModal').style.display = 'flex';
+  document.getElementById('logTitle').textContent = 'Logs — ' + name;
+  fetchLogs(name);
+  if (logInterval) clearInterval(logInterval);
+  logInterval = setInterval(() => fetchLogs(name), 3000);
+}
+function fetchLogs(name) {
+  fetch('/get_log/' + encodeURIComponent(name)).then(r => r.json()).then(res => {
+    const box = document.getElementById('logBox');
+    box.textContent = res.log || '(Koi log nahi hai abhi tak)';
+    box.scrollTop = box.scrollHeight;
+  });
+}
+document.getElementById('logModal').addEventListener('click', function(e){
+  if (e.target === this) { clearInterval(logInterval); closeModal('logModal'); }
+});
+
+// ---------------- FILE MANAGER ----------------
+function openFiles(name) {
+  currentProject = name;
+  document.getElementById('fileModal').style.display = 'flex';
+  document.getElementById('fileModalTitle').textContent = 'Files — ' + name;
+  document.getElementById('fileListView').style.display = 'block';
+  document.getElementById('fileEditView').style.display = 'none';
+  loadFileList();
+}
+function loadFileList() {
+  const view = document.getElementById('fileListView');
+  view.innerHTML = 'Loading...';
+  fetch('/list_files/' + encodeURIComponent(currentProject)).then(r => r.json()).then(res => {
+    if (!res.files.length) { view.innerHTML = '<p style="font-size:12px;opacity:0.6;">Koi file nahi mili.</p>'; return; }
+    view.innerHTML = '';
+    res.files.forEach(f => {
+      const div = document.createElement('div');
+      div.className = 'file-item';
+      div.innerHTML = '<span>' + escapeHtml(f) + '</span><i class="fa-solid fa-pen"></i>';
+      div.onclick = () => openFileEditor(f);
+      view.appendChild(div);
+    });
+  });
+}
+function openFileEditor(filename) {
+  currentFile = filename;
+  fetch('/read_file', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({project: currentProject, filename: filename}) })
+    .then(r => r.json()).then(res => {
+      document.getElementById('fileListView').style.display = 'none';
+      document.getElementById('fileEditView').style.display = 'block';
+      document.getElementById('editingFileName').textContent = filename;
+      document.getElementById('fileEditor').value = res.content || '';
+    });
+}
+function backToFileList() {
+  document.getElementById('fileListView').style.display = 'block';
+  document.getElementById('fileEditView').style.display = 'none';
+  loadFileList();
+}
+function saveFile() {
+  const content = document.getElementById('fileEditor').value;
+  fetch('/save_file', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({project: currentProject, filename: currentFile, content: content}) })
+    .then(r => r.json()).then(res => {
+      if (res.status === 'success') Swal.fire({title:'Saved!', icon:'success', timer:1000, showConfirmButton:false});
+      else Swal.fire('Error', res.error || 'Save nahi hua', 'error');
+    });
+}
+function deleteFileFromEditor() {
+  Swal.fire({title:'File delete karni hai?', icon:'warning', showCancelButton:true, confirmButtonColor:'#ff4757'}).then(result => {
+    if (!result.isConfirmed) return;
+    fetch('/delete_file', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({project: currentProject, filename: currentFile}) })
+      .then(r => r.json()).then(res => { backToFileList(); });
+  });
+}
+document.getElementById('fileModal').addEventListener('click', function(e){
+  if (e.target === this) closeModal('fileModal');
+});
+
+// ---------------- AUTO REFRESH DASHBOARD ----------------
+setInterval(() => { location.reload(); }, 60000);
+</script>
+</body>
+</html>
